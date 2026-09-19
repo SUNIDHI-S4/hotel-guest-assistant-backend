@@ -1,10 +1,19 @@
-from fastapi import APIRouter, Depends, status
+from uuid import UUID
 
-from app.config import get_settings
-from app.models.responses import ConversationData, CreateConversationResponse, ErrorResponse
-from app.repositories.conversation_repository import (
-    ConversationRepository,
-    get_conversation_repository,
+from fastapi import APIRouter, Depends, Query, status
+
+from app.models.responses import (
+    ConversationData,
+    CreateConversationResponse,
+    ErrorResponse,
+    MessageData,
+    MessageHistoryData,
+    MessageHistoryResponse,
+)
+from app.services.conversation_service import (
+    DEFAULT_HISTORY_LIMIT,
+    ConversationService,
+    get_conversation_service,
 )
 
 router = APIRouter(tags=["conversations"])
@@ -17,7 +26,26 @@ router = APIRouter(tags=["conversations"])
     responses={503: {"model": ErrorResponse}},
 )
 def create_conversation(
-    repository: ConversationRepository = Depends(get_conversation_repository),
+    service: ConversationService = Depends(get_conversation_service),
 ) -> CreateConversationResponse:
-    conversation_id = repository.create(get_settings().default_hotel_id)
-    return CreateConversationResponse(data=ConversationData(conversation_id=conversation_id))
+    return CreateConversationResponse(data=ConversationData(conversation_id=service.create()))
+
+
+@router.get(
+    "/conversations/{conversation_id}/messages",
+    response_model=MessageHistoryResponse,
+    responses={404: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+)
+def get_messages(
+    conversation_id: UUID,
+    limit: int = Query(DEFAULT_HISTORY_LIMIT, ge=1, le=200),
+    service: ConversationService = Depends(get_conversation_service),
+) -> MessageHistoryResponse:
+    """The conversation's latest messages, oldest first, for restoring a chat after a refresh."""
+    messages = service.get_messages(conversation_id, limit)
+    return MessageHistoryResponse(
+        data=MessageHistoryData(
+            conversation_id=conversation_id,
+            messages=[MessageData(**message.model_dump()) for message in messages],
+        )
+    )

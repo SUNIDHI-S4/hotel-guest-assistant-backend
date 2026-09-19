@@ -10,6 +10,12 @@ class AppError(Exception):
         super().__init__(self.message)
 
 
+class ConversationNotFound(AppError):
+    status_code = 404
+    code = "conversation_not_found"
+    message = "We couldn't find that conversation. Please start a new chat."
+
+
 class InvalidAvailabilityRequest(AppError):
     """The guest's dates or party size can't be searched; the message is safe to show them."""
 

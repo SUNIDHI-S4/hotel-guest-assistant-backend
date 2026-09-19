@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     gemini_api_key: str
     supabase_url: str
@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     # Timezone the hotel operates in; decides what "today" means for date validation.
     hotel_timezone: str = "Asia/Kolkata"
+    # Prices in the database carry no currency; this is shown in front of them.
+    currency_symbol: str = "₹"
 
     @property
     def cors_origin_list(self) -> list[str]:

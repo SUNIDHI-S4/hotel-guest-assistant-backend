@@ -24,6 +24,14 @@ class InvalidAvailabilityRequest(AppError):
     message = "Those dates or guest numbers don't look right."
 
 
+class HotelNotFound(AppError):
+    """DEFAULT_HOTEL_ID points at a hotel that isn't in the database (a setup problem)."""
+
+    status_code = 500
+    code = "hotel_not_configured"
+    message = "The hotel's information isn't available right now. Please try again later."
+
+
 class DatabaseError(AppError):
     status_code = 503
     code = "database_unavailable"

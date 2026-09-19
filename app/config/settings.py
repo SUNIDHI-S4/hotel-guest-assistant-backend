@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     supabase_key: str
     default_hotel_id: str
 
+    # The guide names gemini-2.5-flash, but Google no longer serves it to new API keys (404) and
+    # points to gemini-3.6-flash as its replacement.
+    gemini_model: str = "gemini-3.6-flash"
+    gemini_timeout_seconds: float = 15.0
+
     # Comma-separated list of browser origins allowed to call the API.
     cors_origins: str = "http://localhost:5173"
     log_level: str = "INFO"

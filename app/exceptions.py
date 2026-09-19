@@ -32,6 +32,28 @@ class HotelNotFound(AppError):
     message = "The hotel's information isn't available right now. Please try again later."
 
 
+class AssistantUnavailable(AppError):
+    """Gemini could not be reached or rejected the request (timeout, 5xx, bad key...)."""
+
+    status_code = 503
+    code = "assistant_unavailable"
+    message = "Our assistant is having trouble right now. Please try again in a moment."
+
+
+class AssistantRateLimited(AppError):
+    status_code = 429
+    code = "assistant_busy"
+    message = "Our assistant is very busy right now. Please try again in a few seconds."
+
+
+class AssistantEmptyResponse(AppError):
+    """Gemini answered with nothing usable (blocked, empty or cut off before any text)."""
+
+    status_code = 502
+    code = "assistant_no_answer"
+    message = "I couldn't put together an answer to that. Could you try rephrasing your question?"
+
+
 class DatabaseError(AppError):
     status_code = 503
     code = "database_unavailable"

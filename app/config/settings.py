@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     # Comma-separated list of browser origins allowed to call the API.
     cors_origins: str = "http://localhost:5173"
     log_level: str = "INFO"
+    # Timezone the hotel operates in; decides what "today" means for date validation.
+    hotel_timezone: str = "Asia/Kolkata"
 
     @property
     def cors_origin_list(self) -> list[str]:

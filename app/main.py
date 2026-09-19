@@ -1,12 +1,20 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api import chat, conversation, health
 from app.config import get_settings
+from app.exceptions import AppError
+from app.models.responses import ErrorDetail, ErrorResponse
 
 API_PREFIX = "/api/v1"
+
+
+def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
+    body = ErrorResponse(error=ErrorDetail(code=exc.code, message=exc.message))
+    return JSONResponse(status_code=exc.status_code, content=body.model_dump())
 
 
 def create_app() -> FastAPI:
@@ -24,6 +32,8 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],
     )
+
+    app.add_exception_handler(AppError, handle_app_error)
 
     for module in (health, conversation, chat):
         app.include_router(module.router, prefix=API_PREFIX)

@@ -1,0 +1,12 @@
+__pychache__/
+*.pyc 
+
+.env
+.venv/
+venv/
+.env.local
+
+.vscode/
+.claude/
+
+*.log/

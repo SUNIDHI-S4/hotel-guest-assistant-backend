@@ -1,5 +1,5 @@
-__pychache__/
-*.pyc 
+__pycache__/
+*.pyc
 
 .env
 .venv/
@@ -9,4 +9,5 @@ venv/
 .vscode/
 .claude/
 
-*.log/
+.pytest_cache/
+*.log

@@ -61,15 +61,18 @@ class AvailabilityService:
             guest_count=guest_count,
             nights=nights,
             rooms=rooms,
+            party_too_large=not candidates,
         )
 
     def _validate(self, check_in: date, check_out: date, guest_count: int) -> None:
         if guest_count <= 0:
-            raise InvalidAvailabilityRequest("The number of guests must be at least 1.")
+            raise InvalidAvailabilityRequest("The number of guests must be at least 1.", "guest_count")
         if check_in < self._today():
-            raise InvalidAvailabilityRequest("The check-in date can't be in the past.")
+            raise InvalidAvailabilityRequest("The check-in date can't be in the past.", "check_in")
         if check_out <= check_in:
-            raise InvalidAvailabilityRequest("The check-out date must be after the check-in date.")
+            raise InvalidAvailabilityRequest(
+                "The check-out date must be after the check-in date.", "check_out"
+            )
 
 
 @lru_cache

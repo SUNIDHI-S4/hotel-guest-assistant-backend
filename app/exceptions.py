@@ -23,6 +23,10 @@ class InvalidAvailabilityRequest(AppError):
     code = "invalid_availability_request"
     message = "Those dates or guest numbers don't look right."
 
+    def __init__(self, message: str | None = None, field: str | None = None):
+        super().__init__(message)
+        self.field = field  # the slot to ask the guest for again: check_in, check_out or guest_count
+
 
 class HotelNotFound(AppError):
     """DEFAULT_HOTEL_ID points at a hotel that isn't in the database (a setup problem)."""

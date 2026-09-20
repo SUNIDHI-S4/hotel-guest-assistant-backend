@@ -22,3 +22,5 @@ class AvailabilityResult(BaseModel):
     nights: int
     # Smallest suitable room first; empty when nothing fits or everything is booked.
     rooms: list[AvailableRoom]
+    # Tells the two empty cases apart: True when no single room type sleeps this many guests.
+    party_too_large: bool = False

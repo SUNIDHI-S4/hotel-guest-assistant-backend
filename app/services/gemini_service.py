@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 # Low temperature: answers should stick to the facts, not get creative.
 TEMPERATURE = 0.2
 MAX_OUTPUT_TOKENS = 600
-# One retry on transient failures (rate limits, overload) with a short pause; more would
-# leave a guest staring at a spinner.
+# One retry, with a short pause, for transient server-side failures; more would leave a guest
+# staring at a spinner. A 429 (rate limit) is deliberately NOT retried: the quota is per minute,
+# so a retry half a second later cannot succeed, and it counts as one more request against the
+# quota, keeping it exhausted. It fails fast as "assistant busy" instead.
 RETRY_ATTEMPTS = 2
-RETRY_STATUS_CODES = [429, 500, 502, 503, 504]
+RETRY_STATUS_CODES = [500, 502, 503, 504]
 
 
 class GeminiService:
@@ -40,6 +42,9 @@ class GeminiService:
             system_instruction=prompt.system_instruction,
             temperature=TEMPERATURE,
             max_output_tokens=MAX_OUTPUT_TOKENS,
+            # We never give the model tools to call. Saying so keeps the SDK from logging a
+            # misleading "automatic function calling" warning at startup.
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
             # Flash can skip its "thinking" step: faster, cheaper, and thinking tokens can
             # otherwise eat the output budget. Other model families don't allow turning it off.
             thinking_config=types.ThinkingConfig(thinking_budget=0) if "flash" in self._model else None,

@@ -41,7 +41,7 @@ class FakeModels:
         return self.response
 
 
-def build(response=None, error=None, model="gemini-3.6-flash"):
+def build(response=None, error=None, model="gemini-3.1-flash-lite"):
     models = FakeModels(response=response, error=error)
     return GeminiService(SimpleNamespace(models=models), model), models
 
@@ -65,7 +65,7 @@ def test_sends_the_conversation_and_rules():
     service.generate(PROMPT)
 
     (call,) = models.calls
-    assert call["model"] == "gemini-3.6-flash"
+    assert call["model"] == "gemini-3.1-flash-lite"
     assert [(c.role, c.parts[0].text) for c in call["contents"]] == [
         ("user", "Do you have a gym?"),
         ("model", "Yes, a fully equipped fitness center."),
@@ -83,6 +83,14 @@ def test_generation_settings_favour_grounded_answers():
     assert config.temperature == gemini_service.TEMPERATURE == 0.2
     assert config.max_output_tokens == gemini_service.MAX_OUTPUT_TOKENS
     assert config.thinking_config.thinking_budget == 0
+
+
+def test_the_sdk_is_told_no_tools_are_in_play():
+    service, models = build(reply("ok"))
+
+    service.generate(PROMPT)
+
+    assert models.calls[0]["config"].automatic_function_calling.disable is True
 
 
 def test_thinking_is_only_switched_off_for_flash_models():
@@ -187,5 +195,7 @@ def test_client_is_configured_from_settings(monkeypatch):
     options = captured["http_options"]
     assert options.timeout == 15000  # milliseconds
     assert options.retry_options.attempts == gemini_service.RETRY_ATTEMPTS == 2
-    assert 429 in options.retry_options.http_status_codes
-    assert service._model == "gemini-3.6-flash"
+    codes = options.retry_options.http_status_codes
+    assert {500, 502, 503, 504} <= set(codes)  # transient server errors are retried once
+    assert 429 not in codes  # a per-minute rate limit is not: retrying only burns more quota
+    assert service._model == "gemini-3.1-flash-lite"

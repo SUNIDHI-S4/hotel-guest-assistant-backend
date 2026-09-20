@@ -4,9 +4,10 @@ from uuid import uuid4
 import pytest
 
 from app.exceptions import ConversationNotFound
-from app.models.entities import ConversationState, Message
+from app.models.entities import Message
 from app.models.slots import Slots
 from app.services.conversation_service import ConversationService
+from tests.fakes import FakeConversations, FakeMessages, FakeStates
 
 HOTEL_ID = "02e96bf4-29ff-484b-8c19-13cbf708402c"
 CONVERSATION_ID = uuid4()
@@ -14,67 +15,6 @@ CONVERSATION_ID = uuid4()
 OCT_21 = date(2026, 10, 21)
 OCT_23 = date(2026, 10, 23)
 NOV_3 = date(2026, 11, 3)
-
-
-class FakeConversations:
-    def __init__(self, exists=True):
-        self.known = exists
-        self.created_for: list[str] = []
-
-    def create(self, hotel_id):
-        self.created_for.append(hotel_id)
-        return "new-conversation-id"
-
-    def exists(self, conversation_id):
-        return self.known
-
-
-class FakeMessages:
-    def __init__(self):
-        self.added: list[tuple] = []
-        self.rows: list[Message] = []
-        self.limits: list[int] = []
-
-    def add(self, conversation_id, role, content):
-        self.added.append((conversation_id, role, content))
-        return Message(
-            id=uuid4(),
-            conversation_id=conversation_id,
-            role=role,
-            content=content,
-            created_at=datetime(2026, 9, 19, 10, 0, 0),
-        )
-
-    def list_recent(self, conversation_id, limit):
-        self.limits.append(limit)
-        return self.rows
-
-
-class FakeStates:
-    def __init__(self, state: Slots | None = None):
-        self.state = state
-        self.saved: list[tuple] = []
-        self.resets = 0
-        self.reads = 0
-
-    def get(self, conversation_id):
-        self.reads += 1
-        if self.state is None:
-            return None
-        return ConversationState(
-            conversation_id=conversation_id,
-            check_in=self.state.check_in,
-            check_out=self.state.check_out,
-            guest_count=self.state.guest_count,
-        )
-
-    def save(self, conversation_id, check_in, check_out, guest_count):
-        self.saved.append((check_in, check_out, guest_count))
-        self.state = Slots(check_in=check_in, check_out=check_out, guest_count=guest_count)
-
-    def reset(self, conversation_id):
-        self.resets += 1
-        self.state = Slots()
 
 
 def build(exists=True, state=None):
@@ -119,6 +59,13 @@ def test_get_messages_returns_history_for_an_existing_conversation():
 
     assert [m.content for m in result] == ["Hi"]
     assert messages.limits == [5]
+
+
+def test_history_skips_the_existence_check_for_callers_that_already_did_it():
+    service, _, messages, _ = build(exists=False)
+
+    assert service.history(CONVERSATION_ID, limit=3) == []
+    assert messages.limits == [3]
 
 
 def test_get_messages_of_unknown_conversation_raises_instead_of_returning_empty():
@@ -242,9 +189,20 @@ def test_passing_current_slots_avoids_a_second_read():
     assert states.saved == [(OCT_21, None, 2)]
 
 
-def test_reset_clears_the_saved_slots():
-    service, _, _, states = build(state=Slots(check_in=OCT_21, check_out=OCT_23, guest_count=2))
+@pytest.mark.parametrize(
+    "field,expected",
+    [
+        ("check_in", Slots(check_in=None, check_out=OCT_23, guest_count=2)),
+        ("check_out", Slots(check_in=OCT_21, check_out=None, guest_count=2)),
+        ("guest_count", Slots(check_in=OCT_21, check_out=OCT_23, guest_count=None)),
+    ],
+)
+def test_clear_slot_forgets_only_that_slot(field, expected):
+    full = Slots(check_in=OCT_21, check_out=OCT_23, guest_count=2)
+    service, _, _, states = build(state=full)
 
-    assert service.reset_slots(CONVERSATION_ID) == Slots()
-    assert states.resets == 1
-    assert service.get_slots(CONVERSATION_ID) == Slots()
+    result = service.clear_slot(CONVERSATION_ID, full, field)
+
+    assert result == expected
+    assert service.get_slots(CONVERSATION_ID) == expected
+    assert len(states.saved) == 1

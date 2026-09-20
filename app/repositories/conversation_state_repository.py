@@ -43,10 +43,6 @@ class ConversationStateRepository:
         )
         return ConversationState(**execute(query).data[0])
 
-    def reset(self, conversation_id: UUID | str) -> ConversationState:
-        """Clear all slots, e.g. after an availability search has been answered."""
-        return self.save(conversation_id, None, None, None)
-
 
 @lru_cache
 def get_conversation_state_repository() -> ConversationStateRepository:

@@ -1,5 +1,3 @@
-import logging
-
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +6,7 @@ from fastapi.responses import JSONResponse
 from app.api import chat, conversation, health
 from app.config import get_settings
 from app.exceptions import AppError
+from app.logging_config import REQUEST_ID_HEADER, configure_logging, request_context_middleware
 from app.models.responses import ErrorDetail, ErrorResponse
 
 API_PREFIX = "/api/v1"
@@ -32,10 +31,7 @@ def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResp
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    logging.basicConfig(
-        level=settings.log_level.upper(),
-        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    )
+    configure_logging(settings.log_level)
 
     app = FastAPI(title="Hotel Guest Assistant API", version="0.1.0")
 
@@ -43,8 +39,10 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", REQUEST_ID_HEADER],
+        expose_headers=[REQUEST_ID_HEADER],
     )
+    app.middleware("http")(request_context_middleware)  # added last, so it wraps everything
 
     app.add_exception_handler(AppError, handle_app_error)
     app.add_exception_handler(RequestValidationError, handle_validation_error)

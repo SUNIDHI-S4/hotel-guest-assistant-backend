@@ -53,6 +53,10 @@ class ConversationService:
     ) -> list[Message]:
         """The latest `limit` messages, oldest first. Unknown conversations raise, not return []."""
         self.require_exists(conversation_id)
+        return self.history(conversation_id, limit)
+
+    def history(self, conversation_id: UUID, limit: int = DEFAULT_HISTORY_LIMIT) -> list[Message]:
+        """Like get_messages, for callers that have already checked the conversation exists."""
         return self._messages.list_recent(conversation_id, limit)
 
     # --- availability slots ------------------------------------------------------------------
@@ -98,9 +102,13 @@ class ConversationService:
             )
         return merged
 
-    def reset_slots(self, conversation_id: UUID) -> Slots:
-        self._states.reset(conversation_id)
-        return Slots()
+    def clear_slot(self, conversation_id: UUID, slots: Slots, field: str) -> Slots:
+        """Forget one slot (e.g. a check-in that turned out to be in the past) and persist it."""
+        cleared = slots.model_copy(update={field: None})
+        self._states.save(
+            conversation_id, cleared.check_in, cleared.check_out, cleared.guest_count
+        )
+        return cleared
 
 
 @lru_cache

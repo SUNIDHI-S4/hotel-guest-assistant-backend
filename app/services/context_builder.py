@@ -10,6 +10,11 @@ def _format_time(value: time) -> str:
     return f"{value.hour % 12 or 12}:{value.minute:02d} {'AM' if value.hour < 12 else 'PM'}"
 
 
+def format_price(amount: float, currency_symbol: str) -> str:
+    text = f"{amount:,.0f}" if amount == int(amount) else f"{amount:,.2f}"
+    return f"{currency_symbol}{text}"
+
+
 def _location(hotel: Hotel) -> str:
     parts: list[str] = []
     for part in (hotel.address, hotel.city, hotel.state, hotel.country):
@@ -67,8 +72,7 @@ class ContextBuilder:
         return "- " + " ".join(parts)
 
     def _price(self, amount: float) -> str:
-        text = f"{amount:,.0f}" if amount == int(amount) else f"{amount:,.2f}"
-        return f"{self._currency}{text}"
+        return format_price(amount, self._currency)
 
 
 @lru_cache

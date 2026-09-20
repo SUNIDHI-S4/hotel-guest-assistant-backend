@@ -61,6 +61,11 @@ def select_categories(question: str) -> tuple[list[Category], bool]:
     return list(_ALL_CATEGORIES), True
 
 
+def mentions_facility_or_policy(text: str) -> bool:
+    """True if the text is about an amenity or a policy (pool, parking, cancellation...)."""
+    return bool(_AMENITIES.search(text) or _POLICIES.search(text))
+
+
 class RetrievalService:
     """Loads the hotel data relevant to a question with plain SQL lookups (no vector store)."""
 

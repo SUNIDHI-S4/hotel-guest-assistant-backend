@@ -17,3 +17,12 @@ from app.main import app
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def stack(monkeypatch):
+    """The real app on an in-memory database with a scripted Gemini; see tests/stack.py."""
+    from tests.stack import clear_provider_caches, make_stack
+
+    yield make_stack(monkeypatch)
+    clear_provider_caches()

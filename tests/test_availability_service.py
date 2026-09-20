@@ -241,3 +241,43 @@ def test_invalid_requests_are_rejected_before_touching_the_database(
     assert message_part in error.value.message
     assert room_repo.capacity_requests == []
     assert booking_repo.requests == []
+
+
+# --- what the chat flow needs from the result and the errors -------------------------------------
+
+
+@pytest.mark.parametrize(
+    "check_in,check_out,guests,field",
+    [
+        (TODAY + timedelta(days=5), TODAY + timedelta(days=7), 0, "guest_count"),
+        (TODAY - timedelta(days=1), TODAY + timedelta(days=2), 2, "check_in"),
+        (TODAY + timedelta(days=5), TODAY + timedelta(days=5), 2, "check_out"),
+        (TODAY + timedelta(days=5), TODAY + timedelta(days=4), 2, "check_out"),
+    ],
+)
+def test_validation_errors_name_the_slot_to_ask_for_again(check_in, check_out, guests, field):
+    service, _, _ = build()
+
+    with pytest.raises(InvalidAvailabilityRequest) as error:
+        service.check(check_in, check_out, guests)
+
+    assert error.value.field == field
+
+
+def test_no_room_big_enough_is_flagged_apart_from_sold_out():
+    service, _, _ = build()
+
+    too_large = service.check(date(2026, 12, 1), date(2026, 12, 3), 6)
+    fits = service.check(date(2026, 12, 1), date(2026, 12, 3), 2)
+
+    assert too_large.rooms == [] and too_large.party_too_large is True
+    assert fits.party_too_large is False
+
+
+def test_sold_out_is_not_reported_as_too_large():
+    bookings = [make_booking(EXECUTIVE, date(2026, 11, 1), date(2026, 11, 5)) for _ in range(3)]
+    service, _, _ = build(bookings=bookings)
+
+    result = service.check(date(2026, 11, 2), date(2026, 11, 4), 5)
+
+    assert result.rooms == [] and result.party_too_large is False

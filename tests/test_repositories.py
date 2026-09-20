@@ -295,13 +295,13 @@ def test_state_save_upserts_slots_as_iso_dates():
     assert row["updated_at"]
 
 
-def test_state_reset_clears_all_slots():
+def test_state_save_with_no_values_clears_the_slots():
     state, query = repo(
         ConversationStateRepository,
         rows=[{"conversation_id": CONVERSATION_ID, "check_in": None, "check_out": None, "guest_count": None}],
     )
 
-    state.reset(CONVERSATION_ID)
+    state.save(CONVERSATION_ID, None, None, None)
 
     row = query.calls[0][1][0]
     assert (row["check_in"], row["check_out"], row["guest_count"]) == (None, None, None)

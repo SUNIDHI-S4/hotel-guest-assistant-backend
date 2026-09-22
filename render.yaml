@@ -1,0 +1,44 @@
+# Render Blueprint for the Hotel Guest Assistant backend.
+# https://render.com/docs/blueprint-spec
+#
+# In the Render dashboard: New -> Blueprint -> pick this repository. Render reads this file
+# and creates the service below; you then fill in the "sync: false" values yourself (they are
+# never stored in this repo). See README.md "Deployment" for the full walkthrough.
+
+services:
+  - type: web
+    name: hotel-guest-assistant-backend
+    runtime: python
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      # Secrets: enter these yourself in the Render dashboard after the first deploy.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: DEFAULT_HOTEL_ID
+        sync: false
+      # Set this to the deployed frontend's URL once it exists (comma-separated for more than one).
+      - key: CORS_ORIGINS
+        sync: false
+
+      # Not secret; fine to keep here.
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GEMINI_MODEL
+        value: gemini-3.1-flash-lite
+      - key: GEMINI_TIMEOUT_SECONDS
+        value: "15"
+      - key: HOTEL_TIMEZONE
+        value: Asia/Kolkata
+      - key: CURRENCY_SYMBOL
+        value: "₹"
+      - key: LOG_LEVEL
+        value: INFO

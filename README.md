@@ -22,9 +22,10 @@ This repository is the **backend** (FastAPI + Supabase + Gemini). The React fron
 6. [Design notes: product, UX, engineering and AI decisions](#design-notes)
 7. [Testing and evaluation](#testing-and-evaluation)
 8. [Logging](#logging)
-9. [Known limitations and next steps](#known-limitations-and-next-steps)
-10. [Project structure](#project-structure)
-11. [AI tools used](#ai-tools-used)
+9. [Deployment](#deployment)
+10. [Known limitations and next steps](#known-limitations-and-next-steps)
+11. [Project structure](#project-structure)
+12. [AI tools used](#ai-tools-used)
 
 ---
 
@@ -496,6 +497,57 @@ header and stamped on every log line written while handling it:
 
 Server errors (5xx) log at `WARNING`; unhandled crashes log a traceback. **Guest message text is never
 logged** (this is tested). Per-query chatter from the HTTP libraries is silenced.
+
+---
+
+## Deployment
+
+The implementation guide names [Render](https://render.com) for the backend; this repo has a
+`render.yaml` [Blueprint](https://render.com/docs/blueprint-spec) so the service is created with
+one click, matching the settings below.
+
+### Deploy
+
+1. Push this repo to GitHub (it already has a remote — `git push`).
+2. In the Render dashboard: **New → Blueprint**, pick this repository. Render reads `render.yaml`
+   and proposes one web service, `hotel-guest-assistant-backend`, with:
+   - **Runtime:** Python 3.11.9
+   - **Build command:** `pip install -r requirements.txt`
+   - **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Health check:** `/api/v1/health`
+3. Render will prompt for the values marked secret in `render.yaml` — enter them yourself in the
+   dashboard (they are never written to this repo):
+
+   | Key | Value |
+   |---|---|
+   | `GEMINI_API_KEY` | your Gemini API key |
+   | `SUPABASE_URL` | your Supabase project URL |
+   | `SUPABASE_KEY` | your Supabase key |
+   | `DEFAULT_HOTEL_ID` | the hotel's `id` (see [Setup, step 1](#setup-and-run)) |
+   | `CORS_ORIGINS` | the deployed frontend's URL, once it exists; `http://localhost:5173` until then |
+
+   Everything else (`GEMINI_MODEL`, `HOTEL_TIMEZONE`, `CURRENCY_SYMBOL`, `LOG_LEVEL`, …) is already
+   set in `render.yaml` to the same defaults as `.env.example`; edit the file or override them in
+   the dashboard if needed.
+4. Click **Apply**. The first deploy takes a few minutes. Render gives the service a URL like
+   `https://hotel-guest-assistant-backend.onrender.com`; check it with:
+   ```bash
+   curl https://hotel-guest-assistant-backend-<random>.onrender.com/api/v1/health
+   ```
+5. Point the frontend's `VITE_API_BASE_URL` at that URL, and once the frontend has its own URL,
+   update `CORS_ORIGINS` on Render to match it (CORS is enforced from that value; see
+   [Configuration](#configuration)).
+
+### Notes
+
+- **Redeploys are automatic.** Render redeploys on every push to `main`; no extra step needed.
+- **Free-tier services sleep** after 15 minutes idle and take 30–60 s to wake on the next request —
+  the guest's first message after a quiet spell will be slow. Render's paid tiers stay warm.
+- **Logging.** Render captures stdout/stderr, so the structured log lines described under
+  [Logging](#logging) show up in its **Logs** tab as-is; no extra setup.
+- **Without the Blueprint**, the same three settings (build command, start command, health check
+  path) can be entered by hand when creating a Render **Web Service** directly from the repo,
+  skipping `render.yaml` entirely.
 
 ---
 

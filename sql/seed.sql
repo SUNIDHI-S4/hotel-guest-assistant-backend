@@ -8,12 +8,12 @@ INSERT INTO hotels (
     check_in_time, check_out_time
 )
 VALUES (
-    'ocean-view-resort',
-    'Ocean View Resort',
-    'A luxury beachfront resort with premium amenities and family-friendly accommodations.',
-    '123 Beach Road',
-    'Goa',
-    'Goa',
+    'royal-orchid-bengaluru',
+    'Royal Orchid Bengaluru',
+    'A premier business and leisure hotel in the heart of Bengaluru, offering modern comfort and warm hospitality.',
+    '47 MG Road',
+    'Bengaluru',
+    'Karnataka',
     'India',
     '15:00',
     '11:00'
@@ -23,14 +23,14 @@ INSERT INTO amenities (hotel_id, name, description)
 SELECT h.id, a.name, a.description
 FROM hotels h,
 (VALUES
-    ('Swimming Pool', 'Outdoor infinity swimming pool with ocean view'),
+    ('Swimming Pool', 'Outdoor swimming pool with a landscaped sundeck'),
     ('Gym', 'Fully equipped fitness center'),
     ('Spa', 'Wellness and spa treatments available'),
     ('Restaurant', 'Multi-cuisine restaurant serving breakfast, lunch and dinner'),
     ('Free WiFi', 'High-speed wireless internet throughout the property'),
     ('Airport Shuttle', 'Paid airport pickup and drop service')
 ) AS a(name, description)
-WHERE h.slug = 'ocean-view-resort';
+WHERE h.slug = 'royal-orchid-bengaluru';
 
 INSERT INTO policies (hotel_id, policy_type, content)
 SELECT h.id, p.policy_type, p.content
@@ -41,7 +41,7 @@ FROM hotels h,
     ('parking', 'Complimentary on-site parking is available for guests.'),
     ('breakfast', 'Complimentary breakfast is included for selected room types.')
 ) AS p(policy_type, content)
-WHERE h.slug = 'ocean-view-resort';
+WHERE h.slug = 'royal-orchid-bengaluru';
 
 INSERT INTO room_types (
     hotel_id, name, description, max_guests,
@@ -52,9 +52,9 @@ FROM hotels h,
 (VALUES
     ('Deluxe Room', 'Comfortable room with garden view.', 2, 4500, true, 10),
     ('Family Suite', 'Spacious suite suitable for families.', 4, 8500, true, 5),
-    ('Executive Suite', 'Premium suite with ocean view and lounge access.', 5, 12000, true, 3)
+    ('Executive Suite', 'Premium suite with city view and lounge access.', 5, 12000, true, 3)
 ) AS r(name, description, max_guests, price_per_night, breakfast_included, total_rooms)
-WHERE h.slug = 'ocean-view-resort';
+WHERE h.slug = 'royal-orchid-bengaluru';
 
 -- Sample bookings so availability checks have something to overlap with.
 INSERT INTO bookings (
@@ -70,7 +70,7 @@ JOIN (VALUES
     ('Executive Suite', '2026-10-25', '2026-10-28', 4)
 ) AS b(room_name, check_in_date, check_out_date, guest_count)
     ON rt.name = b.room_name
-JOIN hotels h ON h.id = rt.hotel_id AND h.slug = 'ocean-view-resort';
+JOIN hotels h ON h.id = rt.hotel_id AND h.slug = 'royal-orchid-bengaluru';
 
 -- Verification
 SELECT * FROM hotels;

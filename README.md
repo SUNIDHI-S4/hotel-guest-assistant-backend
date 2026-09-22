@@ -85,8 +85,8 @@ In the Supabase SQL editor run, in order:
 
 1. `sql/schema.sql`: creates the tables, indexes and disables row-level security (the backend is
    the only client of the database; see [limitations](#known-limitations-and-next-steps)).
-2. `sql/seed.sql`: inserts *Royal Orchid Bengaluru* with its amenities, policies, three room types
-   and four sample bookings. The last query in that file returns the hotel row; copy its `id`.
+2. `sql/seed.sql`: inserts *The Clarks Inn* with its amenities, policies, three room types and four
+   sample bookings. The last query in that file returns the hotel row; copy its `id`.
 
 ### 2. Install and configure
 
@@ -190,7 +190,7 @@ a `response_type`; the frontend switches on it.
 
 **`text`** — an answer to a hotel question (from Gemini):
 ```json
-{"response_type": "text", "message": "Yes, Royal Orchid Bengaluru has an outdoor swimming pool with a landscaped sundeck."}
+{"response_type": "text", "message": "Yes, The Clarks Inn has an outdoor swimming pool with a landscaped sundeck."}
 ```
 
 **`slot_collection`** — the guest wants availability but details are missing:
@@ -435,9 +435,10 @@ python scripts/evaluate_live.py         # terminal 2 (about 3 minutes; paced for
 Supabase data, seed sample bookings): **18 of 18 scenarios passed.** Times are wall-clock per request:
 availability replies take under a second, hotel questions 2–4 seconds.
 
-> This run predates the hotel being renamed to *Royal Orchid Bengaluru*; at the time the seed data
-> was still *Ocean View Resort* in Goa, which is why the quoted replies below mention an ocean view.
-> Re-run `scripts/evaluate_live.py` against the current data for fresh results.
+> This run predates the hotel's current data. At the time, the seed data was *Ocean View Resort* in
+> Goa (later renamed to *Royal Orchid Bengaluru*, and now *The Clarks Inn* in Chikkamagaluru), which
+> is why the quoted replies below mention an ocean view. Re-run `scripts/evaluate_live.py` against
+> the current data for fresh results.
 
 | # | Scenario | Guest message | Expected | Type | Time | Result |
 |---|---|---|---|---|---|---|

@@ -8,11 +8,11 @@ INSERT INTO hotels (
     check_in_time, check_out_time
 )
 VALUES (
-    'royal-orchid-bengaluru',
-    'Royal Orchid Bengaluru',
-    'A premier business and leisure hotel in the heart of Bengaluru, offering modern comfort and warm hospitality.',
-    '47 MG Road',
-    'Bengaluru',
+    'the-clarks-inn-chikkamagaluru',
+    'The Clarks Inn',
+    'A cozy hillside retreat in the coffee country of Chikkamagaluru, set amid scenic plantations and misty hills.',
+    '12 Coffee Estate Road',
+    'Chikkamagaluru',
     'Karnataka',
     'India',
     '15:00',
@@ -28,9 +28,13 @@ FROM hotels h,
     ('Spa', 'Wellness and spa treatments available'),
     ('Restaurant', 'Multi-cuisine restaurant serving breakfast, lunch and dinner'),
     ('Free WiFi', 'High-speed wireless internet throughout the property'),
-    ('Airport Shuttle', 'Paid airport pickup and drop service')
+    ('Airport Shuttle', 'Paid airport pickup and drop service'),
+    ('Coffee Plantation Tour', 'Guided walking tour of the on-site coffee plantation'),
+    ('Bonfire & Barbecue Area', 'Evening bonfire and barbecue area with hill views'),
+    ('Indoor Games Room', 'Indoor games room with carrom, table tennis and board games'),
+    ('Conference Hall', 'Conference hall suitable for small business meetings and events')
 ) AS a(name, description)
-WHERE h.slug = 'royal-orchid-bengaluru';
+WHERE h.slug = 'the-clarks-inn-chikkamagaluru';
 
 INSERT INTO policies (hotel_id, policy_type, content)
 SELECT h.id, p.policy_type, p.content
@@ -39,9 +43,13 @@ FROM hotels h,
     ('cancellation', 'Free cancellation up to 24 hours before check-in.'),
     ('pets', 'Pets are not allowed at the property.'),
     ('parking', 'Complimentary on-site parking is available for guests.'),
-    ('breakfast', 'Complimentary breakfast is included for selected room types.')
+    ('breakfast', 'Complimentary breakfast is included for selected room types.'),
+    ('id_proof', 'A valid government-issued photo ID is required at check-in for all guests.'),
+    ('smoking', 'Smoking is not permitted indoors; a designated outdoor smoking area is available.'),
+    ('extra_bed', 'Extra beds can be arranged for an additional charge, subject to availability.'),
+    ('children', 'Children below 5 years stay free when using existing bedding.')
 ) AS p(policy_type, content)
-WHERE h.slug = 'royal-orchid-bengaluru';
+WHERE h.slug = 'the-clarks-inn-chikkamagaluru';
 
 INSERT INTO room_types (
     hotel_id, name, description, max_guests,
@@ -52,9 +60,9 @@ FROM hotels h,
 (VALUES
     ('Deluxe Room', 'Comfortable room with garden view.', 2, 4500, true, 10),
     ('Family Suite', 'Spacious suite suitable for families.', 4, 8500, true, 5),
-    ('Executive Suite', 'Premium suite with city view and lounge access.', 5, 12000, true, 3)
+    ('Executive Suite', 'Premium suite with hill view and lounge access.', 5, 12000, true, 3)
 ) AS r(name, description, max_guests, price_per_night, breakfast_included, total_rooms)
-WHERE h.slug = 'royal-orchid-bengaluru';
+WHERE h.slug = 'the-clarks-inn-chikkamagaluru';
 
 -- Sample bookings so availability checks have something to overlap with.
 INSERT INTO bookings (
@@ -70,7 +78,7 @@ JOIN (VALUES
     ('Executive Suite', '2026-10-25', '2026-10-28', 4)
 ) AS b(room_name, check_in_date, check_out_date, guest_count)
     ON rt.name = b.room_name
-JOIN hotels h ON h.id = rt.hotel_id AND h.slug = 'royal-orchid-bengaluru';
+JOIN hotels h ON h.id = rt.hotel_id AND h.slug = 'the-clarks-inn-chikkamagaluru';
 
 -- Verification
 SELECT * FROM hotels;

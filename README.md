@@ -87,6 +87,9 @@ In the Supabase SQL editor run, in order:
    the only client of the database; see [limitations](#known-limitations-and-next-steps)).
 2. `sql/seed.sql`: inserts *The Clarks Inn* with its amenities, policies, three room types and four
    sample bookings. The last query in that file returns the hotel row; copy its `id`.
+3. If you set this database up before 23 Sep 2026, also run each file in `sql/migrations/` (oldest
+   first — there is currently one, adding amenity timings). A fresh setup from steps 1–2 already has
+   everything in them and can skip this.
 
 ### 2. Install and configure
 
@@ -131,6 +134,7 @@ Set in `.env` (see `.env.example`).
 | `SUPABASE_KEY` | yes | | Supabase key (used server-side only; never sent to the browser) |
 | `DEFAULT_HOTEL_ID` | yes | | `id` of the hotel row this deployment serves |
 | `GEMINI_MODEL` | no | `gemini-3.1-flash-lite` | Model name. See the note below |
+| `GEMINI_API_KEY_FALLBACK` | no | | A second Gemini API key, used only when the primary key is rate-limited. See the free-tier note below |
 | `GEMINI_TIMEOUT_SECONDS` | no | `15` | Per-request Gemini timeout |
 | `CORS_ORIGINS` | no | `http://localhost:5173` | Comma-separated browser origins allowed to call the API |
 | `HOTEL_TIMEZONE` | no | `Asia/Kolkata` | Decides what "today" means when validating dates |
@@ -146,10 +150,17 @@ Set in `.env` (see `.env.example`).
 > tested, `gemini-3.6-flash` allowed about 5 requests per minute and only 20 per day. Beyond a
 > model's limit, hotel questions get the "assistant is busy" reply (HTTP 429) until the allowance
 > resets. Availability requests never call Gemini, so they are unaffected. Each model has its own
-> allowance, so setting
-> `GEMINI_MODEL` to another model gives a fresh one, and enabling billing on the key removes the
-> limits for real use. A 429 is deliberately not retried: the limit is per minute or per day, so
-> retrying immediately cannot succeed and would only use up more of the allowance.
+> allowance, so setting `GEMINI_MODEL` to another model gives a fresh one, and enabling billing on
+> the key removes the limits for real use. A 429 is deliberately not retried on the *same* key: the
+> limit is per minute or per day, so retrying immediately cannot succeed and would only use up more
+> of the allowance.
+>
+> **Fallback key.** Set `GEMINI_API_KEY_FALLBACK` to a second Gemini API key — ideally created under
+> a *different* Google account/project, since it needs its own separate quota — and the assistant
+> switches to it automatically the moment the primary key comes back rate-limited, with no visible
+> interruption to the guest. It only triggers on that specific failure (quota exhaustion, HTTP 429);
+> a genuine Gemini outage (5xx) or a network blip isn't retried on the fallback, since both keys
+> would hit the same problem. Leave it unset to disable the fallback (the default).
 
 ---
 
@@ -558,8 +569,9 @@ one click, matching the settings below.
   formula from the design guide) counts every booking that touches the stay, even ones that never
   overlap each other, so it can under-report but never overbooks. Counting the peak number of rooms
   in use on any night would be more exact.
-- **Gemini free tier** allows about 5 requests per minute. Use a billed key in production; consider
-  a queue or per-guest rate limiting.
+- **Gemini free tier** allows about 5 requests per minute. `GEMINI_API_KEY_FALLBACK` (see
+  [Configuration](#configuration)) covers occasional exhaustion with a second key, but a billed key
+  is the real fix for production; consider a queue or per-guest rate limiting too.
 - **Security.** The backend uses one Supabase key with row-level security disabled, as the plan
   specified. Before production: use a `service_role` key kept server-side, enable RLS, add
   per-IP rate limiting and authentication where needed.

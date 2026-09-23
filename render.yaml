@@ -19,6 +19,10 @@ services:
       # Secrets: enter these yourself in the Render dashboard after the first deploy.
       - key: GEMINI_API_KEY
         sync: false
+      # Optional: a second key from a different Google account/project, used only once the
+      # primary key's quota is exhausted. Leave unset in the dashboard if you don't have one.
+      - key: GEMINI_API_KEY_FALLBACK
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY

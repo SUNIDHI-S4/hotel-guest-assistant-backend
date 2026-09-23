@@ -27,10 +27,18 @@ class GeminiService:
 
     Every failure becomes one of three AppErrors, so callers never see SDK or network
     exceptions: AssistantRateLimited, AssistantEmptyResponse or AssistantUnavailable.
+
+    An optional `fallback_client` — a second Gemini key, typically from a different Google
+    account/project — is tried only when the primary key comes back rate-limited (its free-tier
+    quota is exhausted). A different project has its own separate quota, so this genuinely
+    helps. Other failures (a Google-side outage, a bad prompt, a network blip) are not retried
+    on the fallback: both keys would hit the same problem, so switching only adds latency.
     """
 
-    def __init__(self, client: genai.Client, model: str):
-        self._client = client
+    def __init__(self, client: genai.Client, model: str, fallback_client: genai.Client | None = None):
+        self._clients: list[tuple[str, genai.Client]] = [("primary", client)]
+        if fallback_client is not None:
+            self._clients.append(("fallback", fallback_client))
         self._model = model
 
     def generate(self, prompt: Prompt) -> str:
@@ -50,18 +58,32 @@ class GeminiService:
             thinking_config=types.ThinkingConfig(thinking_budget=0) if "flash" in self._model else None,
         )
 
+        for index, (label, client) in enumerate(self._clients):
+            try:
+                return self._call(client, label, contents, config)
+            except AssistantRateLimited:
+                if index == len(self._clients) - 1:
+                    raise
+                logger.warning(
+                    "Gemini key '%s' is rate limited; retrying with the fallback key", label
+                )
+
+    def _call(self, client: genai.Client, label: str, contents, config) -> str:
         started = time.perf_counter()
         try:
-            response = self._client.models.generate_content(
+            response = client.models.generate_content(
                 model=self._model, contents=contents, config=config
             )
         except errors.APIError as exc:
-            logger.error("Gemini API error: code=%s status=%s message=%s", exc.code, exc.status, exc.message)
+            logger.error(
+                "Gemini API error (key=%s): code=%s status=%s message=%s",
+                label, exc.code, exc.status, exc.message,
+            )
             if exc.code == 429:
                 raise AssistantRateLimited() from exc
             raise AssistantUnavailable() from exc
         except Exception as exc:  # timeouts, connection failures, anything the SDK lets through
-            logger.exception("Gemini request failed (%s)", type(exc).__name__)
+            logger.exception("Gemini request failed (key=%s, %s)", label, type(exc).__name__)
             raise AssistantUnavailable() from exc
 
         elapsed_ms = round((time.perf_counter() - started) * 1000)
@@ -69,7 +91,8 @@ class GeminiService:
         finish_reason = response.candidates[0].finish_reason if response.candidates else None
         usage = response.usage_metadata
         logger.info(
-            "Gemini reply: model=%s %dms finish=%s prompt_tokens=%s output_tokens=%s",
+            "Gemini reply: key=%s model=%s %dms finish=%s prompt_tokens=%s output_tokens=%s",
+            label,
             self._model,
             elapsed_ms,
             getattr(finish_reason, "name", finish_reason),
@@ -79,16 +102,16 @@ class GeminiService:
 
         if not text:
             block = getattr(response.prompt_feedback, "block_reason", None)
-            logger.warning("Gemini returned no text (finish=%s, blocked=%s)", finish_reason, block)
+            logger.warning(
+                "Gemini returned no text (key=%s, finish=%s, blocked=%s)", label, finish_reason, block
+            )
             raise AssistantEmptyResponse()
         return text
 
 
-@lru_cache
-def get_gemini_service() -> GeminiService:
-    settings = get_settings()
-    client = genai.Client(
-        api_key=settings.gemini_api_key,
+def _build_client(api_key: str, settings) -> genai.Client:
+    return genai.Client(
+        api_key=api_key,
         http_options=types.HttpOptions(
             timeout=int(settings.gemini_timeout_seconds * 1000),
             retry_options=types.HttpRetryOptions(
@@ -99,4 +122,15 @@ def get_gemini_service() -> GeminiService:
             ),
         ),
     )
-    return GeminiService(client, settings.gemini_model)
+
+
+@lru_cache
+def get_gemini_service() -> GeminiService:
+    settings = get_settings()
+    client = _build_client(settings.gemini_api_key, settings)
+    fallback_client = (
+        _build_client(settings.gemini_api_key_fallback, settings)
+        if settings.gemini_api_key_fallback
+        else None
+    )
+    return GeminiService(client, settings.gemini_model, fallback_client)

@@ -28,7 +28,7 @@ def seed_tables() -> dict[str, list[dict]]:
         "id": str(uuid4()), "hotel_id": HOTEL_ID, "room_type_id": room_id, "check_in_date": start,
         "check_out_date": end, "guest_count": guests, "booking_status": "confirmed", "created_at": stamp,
     }  # fmt: skip
-    amenity = lambda name, desc: {"id": str(uuid4()), "hotel_id": HOTEL_ID, "name": name, "description": desc, "created_at": stamp}  # noqa: E731
+    amenity = lambda name, desc, timings=None: {"id": str(uuid4()), "hotel_id": HOTEL_ID, "name": name, "description": desc, "timings": timings, "created_at": stamp}  # noqa: E731
     policy = lambda kind, text: {"id": str(uuid4()), "hotel_id": HOTEL_ID, "policy_type": kind, "content": text, "created_at": stamp}  # noqa: E731
 
     return {
@@ -39,12 +39,12 @@ def seed_tables() -> dict[str, list[dict]]:
             "check_in_time": "15:00:00", "check_out_time": "11:00:00", "created_at": stamp, "updated_at": stamp,
         }],  # fmt: skip
         "amenities": [
-            amenity("Swimming Pool", "Outdoor infinity swimming pool with ocean view"),
-            amenity("Gym", "Fully equipped fitness center"),
-            amenity("Spa", "Wellness and spa treatments available"),
-            amenity("Restaurant", "Multi-cuisine restaurant serving breakfast, lunch and dinner"),
-            amenity("Free WiFi", "High-speed wireless internet throughout the property"),
-            amenity("Airport Shuttle", "Paid airport pickup and drop service"),
+            amenity("Swimming Pool", "Outdoor infinity swimming pool with ocean view", "6:00 AM - 8:00 PM"),
+            amenity("Gym", "Fully equipped fitness center", "24 hours"),
+            amenity("Spa", "Wellness and spa treatments available", "9:00 AM - 8:00 PM"),
+            amenity("Restaurant", "Multi-cuisine restaurant serving breakfast, lunch and dinner", "7:00 AM - 11:00 PM"),
+            amenity("Free WiFi", "High-speed wireless internet throughout the property"),  # no fixed timing
+            amenity("Airport Shuttle", "Paid airport pickup and drop service", "On request"),
         ],
         "policies": [
             policy("cancellation", "Free cancellation up to 24 hours before check-in."),

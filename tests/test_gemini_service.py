@@ -46,6 +46,16 @@ def build(response=None, error=None, model="gemini-3.1-flash-lite"):
     return GeminiService(SimpleNamespace(models=models), model), models
 
 
+def build_with_fallback(primary_error, fallback_response=None, fallback_error=None, model="gemini-3.1-flash-lite"):
+    """A service with two clients, so the fallback-on-rate-limit behaviour can be exercised."""
+    primary = FakeModels(error=primary_error)
+    fallback = FakeModels(response=fallback_response, error=fallback_error)
+    service = GeminiService(
+        SimpleNamespace(models=primary), model, fallback_client=SimpleNamespace(models=fallback)
+    )
+    return service, primary, fallback
+
+
 def api_error(cls, code, status):
     return cls(code, {"error": {"code": code, "message": "boom", "status": status}})
 
@@ -174,6 +184,72 @@ def test_error_messages_are_safe_to_show_guests():
         assert not any(word in text for word in ("gemini", "api", "exception", "traceback", "key"))
 
 
+# --- fallback key on quota exhaustion -------------------------------------------------------------
+
+
+def test_a_rate_limited_primary_key_falls_back_to_the_second_key():
+    rate_limited = api_error(errors.ClientError, 429, "RESOURCE_EXHAUSTED")
+    service, primary, fallback = build_with_fallback(rate_limited, fallback_response=reply("Yes, we have a spa."))
+
+    assert service.generate(PROMPT) == "Yes, we have a spa."
+    assert len(primary.calls) == 1
+    assert len(fallback.calls) == 1
+    assert fallback.calls[0]["model"] == "gemini-3.1-flash-lite"
+
+
+def test_if_both_keys_are_rate_limited_the_error_is_still_busy_not_unavailable():
+    rate_limited = api_error(errors.ClientError, 429, "RESOURCE_EXHAUSTED")
+    also_rate_limited = api_error(errors.ClientError, 429, "RESOURCE_EXHAUSTED")
+    service, primary, fallback = build_with_fallback(rate_limited, fallback_error=also_rate_limited)
+
+    with pytest.raises(AssistantRateLimited) as raised:
+        service.generate(PROMPT)
+
+    assert raised.value.code == "assistant_busy"
+    assert len(primary.calls) == 1 and len(fallback.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "primary_error",
+    [
+        api_error(errors.ServerError, 503, "UNAVAILABLE"),
+        httpx.ConnectTimeout("timed out"),
+    ],
+    ids=["503", "timeout"],
+)
+def test_a_non_quota_failure_does_not_try_the_fallback_key(primary_error):
+    """An outage or network blip would hit the fallback key too, so it isn't worth the latency."""
+    service, primary, fallback = build_with_fallback(primary_error, fallback_response=reply("unused"))
+
+    with pytest.raises(AssistantUnavailable):
+        service.generate(PROMPT)
+
+    assert len(primary.calls) == 1
+    assert fallback.calls == []
+
+
+def test_an_empty_reply_from_the_primary_key_does_not_try_the_fallback_key():
+    primary = FakeModels(response=reply(""))
+    fallback = FakeModels(response=reply("Yes, we have a spa."))
+    service = GeminiService(
+        SimpleNamespace(models=primary), "gemini-3.1-flash-lite", fallback_client=SimpleNamespace(models=fallback)
+    )
+
+    with pytest.raises(AssistantEmptyResponse):
+        service.generate(PROMPT)
+
+    assert fallback.calls == []
+
+
+def test_without_a_configured_fallback_a_rate_limit_fails_immediately():
+    service, models = build(error=api_error(errors.ClientError, 429, "RESOURCE_EXHAUSTED"))
+
+    with pytest.raises(AssistantRateLimited):
+        service.generate(PROMPT)
+
+    assert len(models.calls) == 1
+
+
 # --- client setup --------------------------------------------------------------------------------
 
 
@@ -199,3 +275,45 @@ def test_client_is_configured_from_settings(monkeypatch):
     assert {500, 502, 503, 504} <= set(codes)  # transient server errors are retried once
     assert 429 not in codes  # a per-minute rate limit is not: retrying only burns more quota
     assert service._model == "gemini-3.1-flash-lite"
+    assert len(service._clients) == 1  # no GEMINI_API_KEY_FALLBACK in the test environment
+
+
+def test_a_configured_fallback_key_builds_a_second_client(monkeypatch):
+    captured = []
+
+    class FakeClient:
+        def __init__(self, api_key, http_options):
+            captured.append(api_key)
+
+    monkeypatch.setattr(gemini_service.genai, "Client", FakeClient)
+    monkeypatch.setenv("GEMINI_API_KEY_FALLBACK", "second-account-key")
+    get_gemini_service.cache_clear()
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        service = get_gemini_service()
+    finally:
+        get_gemini_service.cache_clear()
+        get_settings.cache_clear()
+
+    assert captured == ["test-gemini-key", "second-account-key"]
+    assert [label for label, _ in service._clients] == ["primary", "fallback"]
+
+
+def test_an_unset_fallback_key_builds_only_the_primary_client(monkeypatch):
+    captured = []
+
+    class FakeClient:
+        def __init__(self, api_key, http_options):
+            captured.append(api_key)
+
+    monkeypatch.setattr(gemini_service.genai, "Client", FakeClient)
+    get_gemini_service.cache_clear()
+    try:
+        service = get_gemini_service()
+    finally:
+        get_gemini_service.cache_clear()
+
+    assert captured == ["test-gemini-key"]
+    assert [label for label, _ in service._clients] == ["primary"]

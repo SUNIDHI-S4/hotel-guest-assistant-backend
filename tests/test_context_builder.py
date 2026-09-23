@@ -166,3 +166,57 @@ def test_policy_types_become_readable_labels():
     )
 
     assert "- Late Checkout: Ask at reception." in text
+
+
+# --- amenity timings -------------------------------------------------------------------------
+
+
+def test_an_amenity_with_a_description_and_timings_shows_both():
+    text = builder.build(
+        make_context(
+            categories=["amenities"],
+            amenities=[
+                Amenity(
+                    id=uuid4(), hotel_id=HOTEL_ID, name="Gym",
+                    description="Fully equipped fitness center", timings="5:00 AM - 10:00 PM",
+                )
+            ],
+        )
+    )
+
+    assert "- Gym: Fully equipped fitness center. Timings: 5:00 AM - 10:00 PM\n" in text + "\n"
+
+
+def test_an_amenity_with_timings_but_no_description():
+    text = builder.build(
+        make_context(
+            categories=["amenities"],
+            amenities=[Amenity(id=uuid4(), hotel_id=HOTEL_ID, name="Gym", description=None, timings="24 hours")],
+        )
+    )
+
+    assert "- Gym: Timings: 24 hours\n" in text + "\n"
+
+
+def test_an_amenity_with_neither_description_nor_timings_is_just_its_name():
+    text = builder.build(
+        make_context(
+            categories=["amenities"],
+            amenities=[Amenity(id=uuid4(), hotel_id=HOTEL_ID, name="Free WiFi", description=None, timings=None)],
+        )
+    )
+
+    assert "- Free WiFi\n" in text + "\n"
+    assert "Timings" not in text
+
+
+def test_an_amenity_without_timings_is_unaffected_existing_data_stays_the_same():
+    text = builder.build(
+        make_context(
+            categories=["amenities"],
+            amenities=[Amenity(id=uuid4(), hotel_id=HOTEL_ID, name="Free WiFi", description="High-speed internet")],
+        )
+    )
+
+    assert "- Free WiFi: High-speed internet\n" in text + "\n"
+    assert "Timings" not in text

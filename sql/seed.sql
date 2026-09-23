@@ -19,21 +19,21 @@ VALUES (
     '11:00'
 );
 
-INSERT INTO amenities (hotel_id, name, description)
-SELECT h.id, a.name, a.description
+INSERT INTO amenities (hotel_id, name, description, timings)
+SELECT h.id, a.name, a.description, a.timings
 FROM hotels h,
 (VALUES
-    ('Swimming Pool', 'Outdoor swimming pool with a landscaped sundeck'),
-    ('Gym', 'Fully equipped fitness center'),
-    ('Spa', 'Wellness and spa treatments available'),
-    ('Restaurant', 'Multi-cuisine restaurant serving breakfast, lunch and dinner'),
-    ('Free WiFi', 'High-speed wireless internet throughout the property'),
-    ('Airport Shuttle', 'Paid airport pickup and drop service'),
-    ('Coffee Plantation Tour', 'Guided walking tour of the on-site coffee plantation'),
-    ('Bonfire & Barbecue Area', 'Evening bonfire and barbecue area with hill views'),
-    ('Indoor Games Room', 'Indoor games room with carrom, table tennis and board games'),
-    ('Conference Hall', 'Conference hall suitable for small business meetings and events')
-) AS a(name, description)
+    ('Swimming Pool', 'Outdoor swimming pool with a landscaped sundeck', '6:00 AM - 8:00 PM'),
+    ('Gym', 'Fully equipped fitness center', '5:00 AM - 10:00 PM'),
+    ('Spa', 'Wellness and spa treatments available', '9:00 AM - 8:00 PM'),
+    ('Restaurant', 'Multi-cuisine restaurant serving breakfast, lunch and dinner', '7:00 AM - 11:00 PM'),
+    ('Free WiFi', 'High-speed wireless internet throughout the property', '24 hours'),
+    ('Airport Shuttle', 'Paid airport pickup and drop service', 'On request, 6:00 AM - 10:00 PM'),
+    ('Coffee Plantation Tour', 'Guided walking tour of the on-site coffee plantation', '10:00 AM and 4:00 PM daily'),
+    ('Bonfire & Barbecue Area', 'Evening bonfire and barbecue area with hill views', '6:00 PM - 10:00 PM'),
+    ('Indoor Games Room', 'Indoor games room with carrom, table tennis and board games', '8:00 AM - 10:00 PM'),
+    ('Conference Hall', 'Conference hall suitable for small business meetings and events', '9:00 AM - 6:00 PM (by prior booking)')
+) AS a(name, description, timings)
 WHERE h.slug = 'the-clarks-inn-chikkamagaluru';
 
 INSERT INTO policies (hotel_id, policy_type, content)

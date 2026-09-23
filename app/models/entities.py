@@ -23,6 +23,9 @@ class Amenity(BaseModel):
     hotel_id: UUID
     name: str
     description: str | None = None
+    # Free text on purpose: a pool's hours ("6:00 AM - 8:00 PM"), a tour's fixed slots
+    # ("10:00 AM and 4:00 PM daily") and "24 hours" don't fit one rigid format.
+    timings: str | None = None
 
 
 class Policy(BaseModel):

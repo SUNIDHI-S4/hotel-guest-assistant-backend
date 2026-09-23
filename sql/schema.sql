@@ -29,6 +29,9 @@ CREATE TABLE amenities (
     hotel_id UUID NOT NULL REFERENCES hotels(id),
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    -- Free text: an hour range ("6:00 AM - 8:00 PM"), fixed slots ("10 AM and 4 PM daily") or
+    -- "24 hours" don't fit one rigid format. NULL means no fixed timing (e.g. always available).
+    timings TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
 

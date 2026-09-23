@@ -2,7 +2,7 @@ from datetime import time
 from functools import lru_cache
 
 from app.config import get_settings
-from app.models.entities import Hotel, RoomType
+from app.models.entities import Amenity, Hotel, RoomType
 from app.models.retrieval import RetrievedContext
 
 
@@ -37,7 +37,7 @@ class ContextBuilder:
         sections = [self._hotel_section(context.hotel)]
 
         if "amenities" in context.categories:
-            lines = [f"- {a.name}: {a.description}" if a.description else f"- {a.name}" for a in context.amenities]
+            lines = [self._amenity_line(a) for a in context.amenities]
             sections.append(self._section("AMENITIES", lines))
         if "policies" in context.categories:
             lines = [f"- {p.policy_type.replace('_', ' ').title()}: {p.content}" for p in context.policies]
@@ -56,6 +56,15 @@ class ContextBuilder:
         lines.append(f"Check-in time: {_format_time(hotel.check_in_time)}")
         lines.append(f"Check-out time: {_format_time(hotel.check_out_time)}")
         return "HOTEL\n" + "\n".join(lines)
+
+    @staticmethod
+    def _amenity_line(amenity: Amenity) -> str:
+        details = []
+        if amenity.description:
+            details.append(amenity.description)
+        if amenity.timings:
+            details.append(f"Timings: {amenity.timings}")
+        return f"- {amenity.name}: {'. '.join(details)}" if details else f"- {amenity.name}"
 
     @staticmethod
     def _section(title: str, lines: list[str]) -> str:

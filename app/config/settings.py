@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # suggests) also works. Free-tier quotas are per model, so this is easy to change.
     gemini_model: str = "gemini-3.1-flash-lite"
     gemini_timeout_seconds: float = 15.0
+    # Optional second Gemini API key (ideally from a different Google account/project, so it
+    # has its own free-tier quota). Used only when the primary key comes back rate-limited.
+    gemini_api_key_fallback: str | None = None
 
     # Comma-separated list of browser origins allowed to call the API.
     cors_origins: str = "http://localhost:5173"

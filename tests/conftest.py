@@ -7,6 +7,10 @@ os.environ.setdefault("SUPABASE_URL", "http://localhost:54321")
 os.environ.setdefault("SUPABASE_KEY", "test-supabase-key")
 os.environ.setdefault("DEFAULT_HOTEL_ID", "00000000-0000-0000-0000-000000000000")
 os.environ.setdefault("HOTEL_TIMEZONE", "Asia/Kolkata")
+# Explicitly empty, not just unset: otherwise a real GEMINI_API_KEY_FALLBACK in .env (there to
+# configure the real server) would leak into tests via pydantic-settings' env_file fallback,
+# since os.environ has no entry for pydantic-settings to prefer over the .env file with.
+os.environ.setdefault("GEMINI_API_KEY_FALLBACK", "")
 
 import pytest
 from fastapi.testclient import TestClient
